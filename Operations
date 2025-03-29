@@ -1,0 +1,150 @@
+SELECT *
+FROM Customers
+
+SELECT *
+FROM Deliveries
+
+SELECT *
+FROM Foods
+
+SELECT *
+FROM Orders
+
+SELECT *
+FROM Restaurants
+
+SELECT *
+FROM Riders
+
+--Total orders placed on the platform
+SELECT COUNT(*)
+FROM Orders;
+
+--Min, Max and Avg delivery time
+SELECT MIN(delivery_duration) AS Min_Delivery, MAX(delivery_duration) AS Max_Delivery, 
+AVG(delivery_duration) AS Avg_Delivery
+FROM Deliveries;
+
+--Total amount spent by customer on orders
+SELECT SUM(total_amount)
+FROM Orders;
+
+--Top 5 customr with high purchasing power
+SELECT Top(5) C.customer_id,C.full_name, SUM(O.total_amount) AS Top_Cus
+FROM Customers AS C
+INNER JOIN Orders AS O
+ON C.customer_id=O.customer_id
+GROUP BY C.customer_id,C.full_name
+ORDER BY Top_Cus DESC;
+
+--Total orders plaed for each resturant
+SELECT R.name, COUNT(O.restaurant_id) AS Total_Order
+FROM Restaurants AS R
+INNER JOIN Orders AS O
+ON R.restaurant_id=O.restaurant_id
+GROUP BY R.name
+ORDER BY Total_Order DESC;
+
+--Which resturant has the highest average rating
+SELECT name, MAX(average_rating) AS Highest_Rating
+FROM Restaurants
+GROUP BY name
+ORDER BY Highest_Rating DESC;
+
+--What is the average delivery time by each delivery zone
+SELECT R.assigned_location,AVG(D.delivery_duration) AS Avg_dev_time
+FROM Riders AS R
+INNER JOIN Deliveries AS D
+ON D.rider_id=R.rider_id
+GROUP BY R.assigned_location
+ORDER BY Avg_dev_time DESC;
+
+--Delivery zone where average delivery time exceeds 30 minutes
+SELECT R.assigned_location,AVG(D.delivery_duration) AS Avg_dev_time
+FROM Deliveries AS D
+INNER JOIN Riders AS R
+ON D.rider_id=R.rider_id
+GROUP BY R.assigned_location
+HAVING AVG(delivery_duration) >30
+ORDER BY Avg_dev_time DESC;
+
+--Top 3 most ordered food
+SELECT TOP 3 F.name,COUNT(O.food_id) AS Most_Ordered
+FROM Foods AS F
+INNER JOIN Orders AS O
+ON F.food_id=O.food_id
+GROUP BY F.name
+ORDER BY Most_Ordered DESC;
+
+--Which customer placed the most orders, and which restaurant did they order from the most.
+SELECT TOP 1 C.customer_id,C.full_name,R.name,COUNT(O.order_id) Most_Ordered
+FROM Orders AS O
+INNER JOIN Customers AS C
+ON O.customer_id=C.customer_id
+INNER JOIN Restaurants AS R
+ON O.restaurant_id=R.restaurant_id
+GROUP BY C.customer_id,C.full_name,R.name
+ORDER BY Most_Ordered DESC;
+
+--Generate a report of all riders who delivered more than 100 orders. Include in the report, their respective total number of orders delivered.
+SELECT R.rider_id,R.full_name,COUNT(O.rider_id) AS Num_Order_Delivered
+FROM Riders AS R
+INNER JOIN Orders AS O
+ON R.rider_id=O.rider_id
+WHERE O.status = 'Completed'
+GROUP BY R.rider_id,R.full_name
+HAVING COUNT(O.rider_id) >100
+ORDER BY Num_Order_Delivered DESC;
+
+--Provide a list of all orders where the order value exceeds the average order value across the platform.
+SELECT *, 
+       (SELECT AVG(total_amount) FROM Orders) AS Average_Order_Value
+FROM Orders
+WHERE total_amount > (SELECT AVG(total_amount) FROM Orders)
+ORDER BY total_amount DESC;
+
+
+--Which customer(s) have spent more than the average total amount across all orders?
+WITH Avg_Order AS (
+select AVG(total_amount) AS Average
+FROM Orders
+)
+SELECT C.customer_id,C.full_name,SUM(O.total_amount) AS Total_Order_Value,A.Average
+FROM Customers AS C
+INNER JOIN Orders AS O
+ON C.customer_id=O.customer_id
+CROSS JOIN Avg_Order AS A
+GROUP BY C.customer_id,C.full_name,A.Average
+HAVING SUM(O.total_amount) > A.Average
+ORDER BY Total_Order_Value DESC;
+
+--Generate a report of all canceled orders for QA to log.
+SELECT *
+FROM Orders
+WHERE status='Cancelled';
+
+SELECT COUNT(*)
+FROM Orders
+WHERE status='Cancelled';
+
+--How many partner restaurants do we currently have on the Island and how many on the Mainland?
+SELECT location, COUNT(Location) AS Num_Partner_Resturant
+FROM Restaurants
+GROUP BY location
+ORDER BY Num_Partner_Resturant;
+
+--Which rider completed the fastest delivery, and what was the time?
+SELECT TOP 1 R.rider_id,R.full_name,D.delivery_duration, D.delivery_time, D.pickup_time
+FROM Riders AS R
+INNER JOIN Deliveries AS D
+ON R.rider_id=D.rider_id
+ORDER BY D.delivery_duration ASC;
+
+--How many customers have placed more than 10 orders?
+SELECT COUNT(*) AS C
+FROM (SELECT customer_id,COUNT(customer_id) AS Cus_Count
+    FROM Orders
+    GROUP BY customer_id
+    HAVING COUNT(customer_id) > 10
+	) AS Count_Customer_Above_100;
+
