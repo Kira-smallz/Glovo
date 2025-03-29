@@ -97,14 +97,9 @@ HAVING COUNT(O.rider_id) >100
 ORDER BY Num_Order_Delivered DESC;
 
 --Provide a list of all orders where the order value exceeds the average order value across the platform.
-WITH Avg_Order AS (
-select AVG(total_amount) AS Average
+SELECT *, (SELECT AVG(total_amount) FROM Orders) AS Average_Order_Value
 FROM Orders
-)
-SELECT *,A.Average
-FROM Orders AS O
-CROSS JOIN Avg_Order AS A
-WHERE O.total_amount>A.Average
+WHERE total_amount > (SELECT AVG(total_amount) FROM Orders)
 ORDER BY total_amount DESC;
 
 --Which customer(s) have spent more than the average total amount across all orders?
